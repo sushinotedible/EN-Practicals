@@ -1,0 +1,79 @@
+P 9 Modifying Default Spanning Tree Behavior
+
+Background
+Four switches have just been installed. The distribution layer switches are Catalyst 3560s, and the access
+layer switches are Catalyst 2960s. There are redundant uplinks between the access layer and distribution
+layer. Because of the possibility of bridging loops, spanning tree logically removes any redundant links.
+
+Required Resources
+• 2 switches (Cisco 2960 with the Cisco IOS Release 12.2(46)SE C2960-LANBASEK9-M image or
+comparable)
+• 2 switches (Cisco 3560 with the Cisco IOS Release 12.2(46)SE C3560-ADVIPSERVICESK9-M
+image or comparable)
+• 1 PC (optional) attached to switch ALS1.
+
+Step 1: Prepare the switches for the lab.
+
+DLS1(config)# interface range fastEthernet 0/7 - 12
+DLS1(config-if-range)# switchport trunk encapsulation dot1q
+DLS1(config-if-range)# switchport mode trunk
+
+Step 2: Display default spanning tree information for all switches.
+
+DLS1# show spanning-tree
+DLS2# show spanning-tree
+ALS1# show spanning-tree
+ALS2# show spanning-tree
+
+Switch# show spanning-tree
+Switch# conf t
+Switch(config)# interface range fastEthernet 0/1-24
+Switch(config-if-range)# no shutdown
+Switch(config-if-range)# end
+Switch# show spanning-tree
+DSL1# show interfaces trunk
+
+Step 3: Configure specific switches to be primary and secondary root.
+
+DLS2# debug spanning-tree events
+Spanning Tree event debugging is on
+
+DLS1(config)# spanning-tree vlan 1 root primary
+ALS1(config)# spanning-tree vlan 1 root secondary
+DLS1# show run | include span spanning-tree mode pvst
+ALS1# show run | include span
+DLS1# show spanning-tree
+
+Step 4: Change the root port using the spanning-tree port-priority command.
+
+DLS2# show spanning-tree
+DLS1# show spanning-tree
+DLS1(config)# int fastEthernet 0/12
+DLS1(config-if)# spanning-tree port-priority 112
+DLS2# show spanning-tree
+DLS1# show spanning-tree
+
+Step 5: Configure PortFast on an access port.
+ALS1(config)# interface fastEthernet 0/6
+ALS1(config-if)# shutdown
+ALS1# debug spanning-tree events
+
+ALS1(config)# interface fastEthernet 0/6
+ALS1(config-if)# switchport mode access
+ALS1(config-if)# no shut
+ALS1(config-if)# end
+
+ALS1(config)# interface fastEthernet 0/6
+ALS1(config-if)# shutdown
+ALS1(config)# interface fastEthernet 0/6
+ALS1(config-if)# spanning-tree portfast
+ALS1(config-if)# no shutdown
+ALS1(config-if)# end
+ALS1# undebug all
+
+Step 6: Change root port using the spanning-tree cost command.
+
+ALS2# show spanning-tree
+ALS2(config)# interface fastEthernet 0/10
+ALS2(config-if-range)# spanning-tree cost 10
+ALS2# show spanning-tree

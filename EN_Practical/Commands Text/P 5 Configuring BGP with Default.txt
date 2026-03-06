@@ -1,0 +1,130 @@
+P 5 Configuring BGP with Default Routing
+
+Background
+The International Travel Agency (ITA) relies extensively on the Internet for sales. For this reason, the ITA has
+decided to create a multihomed ISP connectivity solution and contracted with two ISPs for Internet
+connectivity with fault tolerance. Because the ITA is connecting to two different service providers, you must
+configure BGP, which runs between the ITA boundary router and the two ISP routers.
+
+Objectives
+• Configure BGP to exchange routing information with two ISPs.
+
+Step 1: Configure the hostname and interface addresses.
+
+Router R1 (hostname ISP1) hostname ISP1 
+interface Lo0
+description ISP1 Internet Network
+ip address 10.1.1.1 255.255.255.0 
+interface Serial0/0/0 
+description ISP1 -> ITA 
+ip address 10.0.0.1 255.255.255.252 
+clock rate 128000
+no shutdown
+end
+
+Router R2 (hostname ITA)
+hostname ITA 
+interface Lo0
+description Core router network link 1
+ip address 192.168.0.1 255.255.255.0 !
+
+interface Lo1
+description Core router network link 2
+ip address 192.168.1.1 255.255.255.0 
+interface Serial0/0/0 
+description ITA -> ISP1 
+ip address 10.0.0.2 255.255.255.252 
+no shutdown
+
+interface Serial0/0/1
+description ITA -> ISP2
+ip address 172.16.0.2 255.255.255.252
+clock rate 128000 
+no shutdown 
+end
+
+Router R3 (hostname ISP2)
+hostname ISP2 
+interface Lo0
+description ISP2 Internet Network
+ip address 172.16.1.1 255.255.255.0 
+
+interface Serial0/0/1
+description ISP2 -> ITA
+ip address 172.16.0.1 255.255.255.252
+no shutdown 
+end
+
+Step 2: Configure BGP on the ISP routers.
+
+ISP1(config)# router bgp 200
+ISP1(config-router)# neighbor 10.0.0.2 remote-as 100
+ISP1(config-router)# network 10.1.1.0 mask 255.255.255.0
+
+ISP2(config)# router bgp 300
+ISP2(config-router)# neighbor 172.16.0.2 remote-as 100
+ISP2(config-router)# network 172.16.1.0 mask 255.255.255.0
+
+Step 3: Configure BGP on the ITA boundary router.
+
+ITA(config)# router bgp 100
+ITA(config-router)# neighbor 10.0.0.1 remote-as 200
+ITA(config-router)# neighbor 172.16.0.1 remote-as 300
+ITA(config-router)# network 192.168.0.0
+ITA(config-router)# network 192.168.1.0
+
+ITA# show ip route
+
+Step 4: Verify BGP on the routers.
+
+ITA# show ip bgp
+ISP1# show ip bgp
+ITA# show ip bgp neighbors
+
+Step 5: Configure route filters.
+
+ISP2# show ip rout
+
+ITA(config)# access-list 1 permit 192.168.0.0 0.0.1.255
+ITA# clear ip bgp *
+
+ISP2# show ip route
+
+ISP1# show ip route
+
+Step 6: Configure primary and backup routes using floating static routes.
+
+ITA# show ip route
+ITA(config)# ip route 0.0.0.0 0.0.0.0 10.0.0.1 210
+ITA(config)# ip route 0.0.0.0 0.0.0.0 172.16.0.1 220
+ITA# show ip route
+
+ISP1# config t
+ISP1(config)# interface loopback 100
+ISP1(config-if)# ip address 192.168.100.1 255.255.255.0
+
+ITA# show ip route
+ITA# ping
+ITA# ping 192.168.100.1 source 192.168.1.1
+
+Step 7: Configure primary and backup routes using a default network and a static route.
+
+ITA(config)# no ip route 0.0.0.0 0.0.0.0 10.0.0.1 210
+ITA(config)# no ip route 0.0.0.0 0.0.0.0 172.16.0.1 220
+
+ISP1(config)# router bgp 200
+ISP1(config-router)# network 192.168.100.0 
+ISP1(config-router)# end
+
+ITA# show ip route
+ITA(config)# ip default-network 192.168.100.0
+ITA# show ip route
+ITA(config)# ip route 0.0.0.0 0.0.0.0 172.16.0.1 220
+ITA# show ip route
+ITA# clear ip bgp 10.0.0.1
+ITA# show ip route
+
+
+
+
+

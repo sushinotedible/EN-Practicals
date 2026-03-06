@@ -1,0 +1,141 @@
+P 8 Inter-VLAN Routing with an External Router
+
+Background
+Inter-VLAN routing using an external router can be a cost-effective solution when it is necessary to segment a
+network into multiple broadcast domains. In this lab, you split an existing network into two separate VLANs on
+the access layer switches, and use an external router to route between the VLANs.
+
+Required Resources
+• 2 routers (Cisco 1841 with Cisco IOS Release 12.4(24)T1 Advanced IP Services or comparable)
+• 2 switches (Cisco 2960 with the Cisco IOS Release 12.2(46)SE C2960-LANBASEK9-M image or comparable)
+
+Step 3: Configure the routers.
+
+Router(config)# hostname ISP
+ISP(config)# interface Loopback0
+ISP(config-if)# ip address 200.200.200.1 255.255.255.0
+ISP(config-if)# interface Serial0/0/0
+ISP(config-if)# ip address 192.168.1.2 255.255.255.0 
+ISP(configif)# no shutdown
+ISP(config-if)# exit
+ISP(config)# ip route 172.16.0.0 255.255.0.0 192.168.1.1
+
+Router(config)# hostname Gateway
+Gateway(config)# interface Serial0/0/0
+Gateway(config-if)# ip address 192.168.1.1 255.255.255.0
+Gateway(config-if)# clockrate 64000
+Gateway(config-if)# no shutdown
+Gateway(config-if)# exit
+Gateway(config)# ip route 0.0.0.0 0.0.0.0 192.168.1.2
+
+Step 4: Configure the switches.
+
+Switch(config)# hostname ALS1
+ALS1(config)# interface vlan 1
+ALS1(config-if)# ip address 172.16.1.101 255.255.255.0
+ALS1(config-if)# no shutdown
+ALS1(config-if)# exit
+ALS1(config)# ip default-gateway 172.16.1.1
+
+Switch(config)# hostname ALS2
+ALS2(config)# interface vlan 1
+ALS2(config-if)# ip address 172.16.1.102 255.255.255.0
+ALS2(config-if)# no shutdown
+ALS2(config-if)# exit
+ALS2(config)# ip default-gateway 172.16.1.1
+
+ALS1(config)# enable secret cisco
+ALS1(config)# line vty 0 15
+ALS1(config-line)# password cisco
+ALS1(config-line)# login
+ALS1(config-line)# end
+ALS2(config)# enable secret cisco
+ALS2(config)# line vty 0 15
+ALS2(config-line)# password cisco
+ALS2(config-line)# login 
+ALS2(config-line)# end
+
+Step 5: Confirm the VLANs.
+
+ALS1# show vlan
+
+Step 6: Configure trunk links and EtherChannel on switches.
+
+ALS1# configure terminal
+Enter configuration commands, one per line. End with CNTL/Z.
+ALS1(config)# interface range fastEthernet 0/11 - 12
+ALS1(config-if-range)# switchport mode trunk
+ALS1(config-if-range)# channel-group 1 mode desirable
+ALS1(config-if-range)# end
+
+ALS2# configure terminal
+Enter configuration commands, one per line. End with CNTL/Z.
+ALS2(config)# interface range fastEthernet 0/11 - 12
+ALS2(config-if-range)# switchport mode trunk
+ALS2(config-if-range)# channel-group 1 mode desirable 
+ALS2(config-if-range)# end
+
+ALS1# show etherchannel 1 summary
+
+Step 7: Configure VTP.
+
+ALS2(config)# vtp mode client
+Setting device to VTP CLIENT mode.
+
+ALS1(config)# vtp domain SWLAB
+Changing VTP domain name from NULL to SWLAB
+%SW_VLAN-6-VTP_DOMAIN_NAME_CHG: VTP domain name changed to SWLAB.
+
+ALS1(config)# vtp version 2
+ALS1# show vtp status
+
+ALS2# show vtp status
+
+ALS1(config)# vlan 100
+ALS1(config-vlan)# name Payroll 
+ALS1(config-vlan)# vlan 200
+ALS1(config-vlan)# name Engineering
+
+ALS2# show vlan brief
+
+ALS1(config)# interface fastEthernet 0/6 
+ALS1(config-if)# switchport mode access
+ALS1(config-if)# switchport access vlan 100
+ALS1(config-if)# spanning-tree portfast
+
+ALS2(config)# interface fastEthernet 0/6 
+ALS2(config-if)# switchport mode access
+ALS2(config-if)# switchport access vlan 200
+ALS2(config-if)# spanning-tree portfast
+
+ALS1# show vlan brief
+
+ALS2# show vlan brief
+
+ALS1(config)# interface fastEthernet 0/1
+ALS1(config-if)# switchport mode trunk
+ALS1(config-if)# end
+
+Step 10: Configure the Gateway router Fast Ethernet interface for VLAN trunking.
+
+Gateway(config)# interface fastEthernet 0/0 
+Gateway(config-if)# no shut
+The following is a sample configuration for the VLAN 1 subinterface.
+Gateway(config)# interface fastEthernet 0/0.1
+Gateway(config-subif)# description Management VLAN 1
+Gateway(config-subif)# encapsulation dot1q 1 native
+Gateway(config-subif)# ip address 172.16.1.1 255.255.255.0
+
+Gateway(config-subif)# interface fastEthernet 0/0.100
+Gateway(config-subif)# description Payroll VLAN 100
+Gateway(config-subif)# encapsulation dot1q 100
+Gateway(config-subif)# ip address 172.16.100.1 255.255.255.0
+
+Gateway(config-subif)# interface fastEthernet 0/0.200
+Gateway(config-subif)# description Engineering VLAN 200
+Gateway(config-subif)# encapsulation dot1q 200
+Gateway(config-subif)# ip address 172.16.200.1 255.255.255.0 
+Gateway(configsubif)# end
+Gateway# show ip interface brief
+Gateway# show interfaces description
+Gateway# show vlans

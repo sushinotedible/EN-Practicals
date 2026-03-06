@@ -1,0 +1,202 @@
+P 4 Manipulating Administrative Distances
+
+Background
+In this lab, you will compare the RIP and OSPF routing protocols based on how efficient they are at selecting
+routes, as well as what happens when you manipulate administrative distances in the routing table.
+Note: This lab uses Cisco 1841 routers with Cisco IOS Release 12.4(24)T1 and the Advanced IP Services
+image c1841-advipservicesk9-mz.124-24.T1.bin. The switch is a Cisco WS-C2960-24TT-L with the Cisco IOS
+image c2960-lanbasek9-mz.122-46.SE.bin. You can use other routers (such as a 2801 or 2811), switches
+(such as 2950), and Cisco IOS Software versions if they have comparable capabilities and features.
+Depending on the router or switch model and Cisco IOS Software version, the commands available and output
+produced might vary from what is shown in this lab.
+
+Objectives
+• Configure RIP on a router.
+• Configure OSPF on a router.
+• Manipulate administrative distances.
+• Compare routing protocol behavior.
+
+
+Step 1: Configure router loopbacks and addressing.
+
+R1# conf t
+R1(config)# interface loopback 1
+R1(config-if)# ip address 172.16.1.1 255.255.255.0
+R1(config-if)# interface loopback 101
+R1(config-if)# ip address 192.168.101.1 255.255.255.0
+R1(config-if)# interface fastethernet 0/0
+R1(config-if)# ip address 172.16.12.1 255.255.255.0
+R1(config-if)# no shutdown
+R1(config-if)# interface serial 0/0/1
+R1(config-if)# bandwidth 64
+R1(config-if)# ip address 172.16.13.1 255.255.255.0 
+R1(config-if)# no shutdown
+
+R2# conf t
+R2(config)# interface loopback 2
+R2(config-if)# ip address 172.16.2.1 255.255.255.0 R2(configif)#
+interface loopback 102
+R2(config-if)# ip address 192.168.102.1 255.255.255.0
+R2(config-if)# interface fastethernet 0/0
+R2(config-if)# ip address 172.16.12.2 255.255.255.0
+R2(config-if)# no shutdown
+R2(config-if)# interface fastethernet 0/1
+R2(config-if)# ip address 172.16.23.2 255.255.255.0 
+R2(config-if)# no shutdown
+
+R3# conf t
+R3(config)# interface loopback 3
+R3(config-if)# ip address 172.16.3.1 255.255.255.0
+R3(config-if)# interface loopback 103
+R3(config-if)# ip address 192.168.103.1 255.255.255.0
+R3(config-if)# interface fastethernet 0/0
+R3(config-if)# ip address 172.16.23.3 255.255.255.0
+R3(config-if)# no shutdown
+R3(config-if)# interface serial 0/0/0
+R3(config-if)# bandwidth 64
+R3(config-if)# ip address 172.16.13.3 255.255.255.0
+R3(config-if)# clock rate 64000 
+R3(config-if)# no shutdown
+
+Step 2: Configure switch VLANs.
+
+Switch(config)# vlan 12
+Switch(config-vlan)# name R1-R2
+Switch(config-vlan)# vlan 23
+Switch(config-vlan)# name R2-R3
+Switch(config-vlan)# exit
+
+Switch(config)# interface fastEthernet 0/1 
+Switch(config-if)# description To R1 Fa0/0 
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 12
+Switch(config-if)# interface fastEthernet 0/2 
+Switch(configif)# description To R2 Fa0/0 
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 12
+
+Switch(config-if)# interface fastEthernet 0/3 
+Switch(configif)# description To R3 Fa0/0 
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 23
+Switch(config-if)# interface fastEthernet 0/4 
+Switch(configif)# description To R2 Fa0/1 
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 23
+
+Step 3: Configure RIP.
+
+R1(config)# router rip
+R1(config-router)# version 2
+R1(config-router)# no auto-summary
+R1(config-router)# network 172.16.0.0
+R1(config-router)# network 192.168.101.0
+
+R2(config)# router rip
+R2(config-router)# version 2
+R2(config-router)# no auto-summary
+R2(config-router)# network 172.16.0.0
+R2(config-router)# network 192.168.102.0
+
+R3(config)# router rip
+R3(config-router)# version 2
+R3(config-router)# no auto-summary
+R3(config-router)# network 172.16.0.0
+R3(config-router)# network 192.168.103.0
+
+R1# show ip route rip
+R2# show ip route rip
+R3# show ip route rip
+
+Step 4: Configure OSPF.
+
+R1(config)# interface loopback 1
+R1(config-if)# ip ospf network point-to-point
+R1(config-if)# interface loopback 101
+R1(config-if)# ip ospf network point-to-point
+R1(config-if)# router ospf 1
+R1(config-router)# network 172.16.0.0 0.0.255.255 area 0
+R1(config-router)# network 192.168.101.0 0.0.0.255 area 0
+
+R2(config)# interface loopback 2
+R2(config-if)# ip ospf network point-to-point
+R2(config-if)# interface loopback 102
+R2(config-if)# ip ospf network point-to-point
+R2(config-if)# router ospf 1
+R2(config-router)# network 172.16.0.0 0.0.255.255 area 0
+R2(config-router)# network 192.168.102.0 0.0.0.255 area 0
+
+R3(config)# interface loopback 3
+R3(config-if)# ip ospf network point-to-point
+R3(config-if)# interface loopback 103
+R3(config-if)# ip ospf network point-to-point
+R3(config-if)# router ospf 1
+R3(config-router)# network 172.16.0.0 0.0.255.255 area 0
+R3(config-router)# network 192.168.103.0 0.0.0.255 area 0
+
+R1# show ip ospf neighbor
+R1# show ip route
+
+R2# show ip ospf neighbor
+R2# show ip route
+
+R3# show ip ospf neighbor
+R3# show ip route
+
+Step 5: Modify the routing protocol distance.
+
+R1(config)# router rip
+R1(config-router)# distance 100
+
+R2(config)# router rip
+R2(config-router)# distance 100
+
+R3(config)# router rip
+R3(config-router)# distance 100
+
+R1# show ip route
+R2# show ip route
+R3# show ip route
+
+R1# show ip protocols
+
+Step 6: Modify distance based on route source.
+
+R1(config)# router ospf 1
+R1(config-router)# distance 85 192.168.100.0 0.0.3.255
+
+R2(config)# router ospf 1
+R2(config-router)# distance 85 192.168.100.0 0.0.3.255
+
+R3(config)# router ospf 1
+R3(config-router)# distance 85 192.168.100.0 0.0.3.255
+
+R1# show ip route
+R2# show ip route
+R3# show ip route
+
+R1# show ip protocols
+
+Step 7: Modify distance based on an access list.
+
+R1(config)# access-list 1 permit 172.16.0.0 0.0.255.255
+R1(config)# router rip
+R1(config-router)# distance 65 0.0.0.0 255.255.255.255 1
+
+R2(config)# access-list 1 permit 172.16.0.0 0.0.255.255
+R2(config)# router rip
+R2(config-router)# distance 65 0.0.0.0 255.255.255.255 1
+
+R3(config)# access-list 1 permit 172.16.0.0 0.0.255.255
+R3(config)# router rip
+R3(config-router)# distance 65 0.0.0.0 255.255.255.255 1
+
+R1# show ip protocols
+R1# show ip route
+
+R2# show ip protocols
+R2# show ip route
+
+R3# show ip protocols
+R3# show ip route
+

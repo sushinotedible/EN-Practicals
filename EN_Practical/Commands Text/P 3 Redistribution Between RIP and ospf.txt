@@ -1,0 +1,178 @@
+P 3 Redistribution Between RIP and OSPF
+
+Background:
+Two online booksellers, Example.com and Example.net, have merged and now need a short-term solution to inter-domain routing. Since these companies provide client services to Internet users, it is essential to have minimal downtime during the transition.
+
+Example.com is a small firm running RIP, while Example.net has a somewhat larger network running OSPF. The diagram identifies R2 as the router that will bridge the two networks. Because it is imperative that the two
+booksellers continuously deliver Internet services, you should bridge these two routing domains without interfering with each router’s path through its own routing domain to the Internet.
+
+The CIO determines that it is preferable to keep the two protocol domains shown in the diagram during the transition period, because the network engineers on each side need to understand the other’s network before deploying a long-term solution. Redistribution will be a short-term solution.
+
+Objectives
+• Review configuration and verification of RIP and OSPF.
+• Configure passive interfaces in both RIP and OSPF.
+• Filter routing updates using distribute lists.
+• Redistribute static routes into RIP.
+• Redistribute RIP routes into OSPF.
+• Redistribute OSPF routes into RIP.
+• Originate a default route into OSPF.
+
+Step 1: Configure loopbacks and assign addresses.
+
+R1(config)# interface Loopback0
+R1(config-if)# ip address 172.16.1.1 255.255.255.0
+R1(config-if)# interface Loopback48
+R1(config-if)# ip address 192.168.48.1 255.255.255.0
+R1(config-if)# interface Loopback49
+R1(config-if)# ip address 192.168.49.1 255.255.255.0
+R1(config-if)# interface Loopback50
+R1(config-if)# ip address 192.168.50.1 255.255.255.0
+R1(config-if)# interface Loopback51
+R1(config-if)# ip address 192.168.51.1 255.255.255.0
+R1(config-if)# interface Loopback70
+R1(config-if)# ip address 192.168.70.1 255.255.255.0
+R1(config-if)# interface Serial0/0/0
+R1(config-if)# ip address 172.16.12.1 255.255.255.0
+R1(config-if)# clock rate 64000 
+R1(config-if)# bandwidth 64 
+R1(config-if)# no shutdown
+
+R2(config)# interface Loopback0
+R2(config-if)# ip address 172.16.2.1 255.255.255.0
+R2(config-if)# interface Serial0/0/0
+R2(config-if)# ip address 172.16.12.2 255.255.255.0
+R2(config-if)# bandwidth 64
+R2(config-if)# no shutdown
+R2(config-if)# interface Serial0/0/1
+R2(config-if)# ip address 172.16.23.2 255.255.255.0
+R2(config-if)# clock rate 64000 
+R2(config-if)# bandwidth 64 
+R2(config-if)# no shutdown
+
+R3(config)# interface Loopback0
+R3(config-if)# ip address 172.16.3.1 255.255.255.0 
+R3(config-if)# interface Loopback20
+R3(config-if)# ip address 192.168.20.1 255.255.255.0
+R3(config-if)# interface Loopback25
+R3(config-if)# ip address 192.168.25.1 255.255.255.0
+R3(config-if)# interface Loopback30
+R3(config-if)# ip address 192.168.30.1 255.255.255.0
+R3(config-if)# interface Loopback35
+R3(config-if)# ip address 192.168.35.1 255.255.255.0
+R3(config-if)# interface Loopback40
+R3(config-if)# ip address 192.168.40.1 255.255.255.0
+R3(config-if)# interface Serial0/0/1
+R3(config-if)# ip address 172.16.23.3 255.255.255.0
+R3(config-if)# bandwidth 64 
+R3(config-if)# no shutdown
+
+Step 2: Configure RIPv2.
+
+R1(config)# router rip
+R1(config-router)# version 2
+R1(config-router)# no auto-summary
+R1(config-router)# network 172.16.0.0
+R1(config-router)# network 192.168.48.0
+R1(config-router)# network 192.168.49.0 
+R1(config-router)# network 192.168.50.0 
+R1(config-router)# network 192.168.51.0
+R1(config-router)# network 192.168.70.0
+
+R2(config)# router rip
+R2(config-router)# version 2
+R2(config-router)# no auto-summary
+R2(config-router)# network 172.16.0.0
+
+R1# show ip route rip
+R2# show ip route rip
+
+Step 3: Configure passive interfaces in RIP.
+
+R1# show ip route rip
+R2(config)# router rip
+R2(config-router)# passive-interface serial 0/0/1
+R2# show ip protocols
+
+R1(config)# router rip
+R1(config-router)# passive-interface loopback 0
+R1(config-router)# passive-interface loopback 48
+R1(config-router)# passive-interface loopback 49
+R1(config-router)# passive-interface loopback 50
+R1(config-router)# passive-interface loopback 51
+R1(config-router)# passive-interface loopback 70
+R2(config)# router rip
+R2(config-router)# passive-interface loopback 0
+
+Step 4: Summarize a supernet with RIP.
+
+R2# show ip route rip
+R1(config)# ip route 192.168.48.0 255.255.252.0 null0
+R1(config)# router rip
+R1(config-router)# redistribute static
+R1# show ip route
+R2# show ip route
+
+Step 5: Suppress routes using prefix lists.
+
+R1(config)# ip prefix-list RIP-OUT permit 192.168.48.0/22
+R1(config)# ip prefix-list RIP-OUT deny 192.168.48.0/22 le 24
+R1(config)# ip prefix-list RIP-OUT permit 0.0.0.0/0 le 32
+
+R1(config)# router rip
+R1(config-router)# distribute-list prefix RIP-OUT out serial0/0/0
+
+R2# show ip route rip
+R2# show ip rip database
+
+Step 6: Configure OSPF.
+
+R2(config)# router ospf 1
+R2(config-router)# network 172.16.23.0 0.0.0.255 area 0
+R3(config)# router ospf 1
+R3(config-router)# network 172.16.0.0 0.0.255.255 area 0
+R3(config-router)# network 192.168.0.0 0.0.255.255 area 0
+
+R3(config)# interface Loopback0
+R3(config-if)# ip ospf network point-to-point
+R3(config-if)# interface Loopback20
+R3(config-if)# ip ospf network point-to-point 
+R3(config-if)# nterface Loopback25
+R3(config-if)# ip ospf network point-to-point
+R3(config-if)# interface Loopback30
+R3(config-if)# ip ospf network point-to-point
+R3(config-if)# interface Loopback35
+R3(config-if)# ip ospf network point-to-point
+R3(config-if)# interface Loopback40
+R3(config-if)# ip ospf network point-to-point
+
+R3# show ip ospf neighbor
+R2# show ip route ospf
+R3# show ip route ospf
+
+Step 7: Configure passive interfaces in OSPF.
+
+R3(config)# router ospf 1
+R3(config-router)# passive-interface default
+R3(config-router)# no passive-interface serial 0/0/1
+R3# how ip protocols
+
+Step 8: Allow one-way redistribution.
+
+R2(config)# router rip
+R2(config-router)# redistribute ospf 1 metric 4
+R2# show ip protocols
+R1# show ip route rip
+R1# ping 192.168.30.1
+R1# traceroute 192.168.30.1
+R2(config)# router ospf 1
+R2(config-router)# default-information originate always
+
+Step 9: Redistribute between two routing protocols.
+
+R2(config)# router ospf 1
+R2(config-router)# no default-information originate always
+R2(config-router)# redistribute rip
+R3# show ip route ospf
+R2(config)# router ospf 1
+R2(config-router)# redistribute rip subnets
+R3# show ip route ospf

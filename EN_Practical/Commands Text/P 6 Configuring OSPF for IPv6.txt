@@ -1,0 +1,136 @@
+P 6 Configuring OSPF for IPv6
+
+Background
+In this lab, you configure static IPv6 addresses and EUI-64 IPv6 addresses on interfaces. You then configure
+OSPFv3 to route between the IPv6 networks.
+
+Objectives
+• Configure a static IPv6 address on an interface.
+• Change the default link-local address on an interface.
+• Configure an EUI-64 IPv6 address on an interface.
+• Enable IPv6 routing and CEF.
+• Configure and verify single-area OSPFv3 operation
+
+Step 2: Configuring the hostname and loopback interfaces.
+
+Router(config)# hostname R1
+R1(config)# interface loopback0
+R1(config-if)# ip address 10.1.1.1 255.255.255.0 \
+R1(config-if)# ipv6 address FEC0::1:1/112
+
+Router(config)# hostname R2
+R2(config)# interface loopback0
+R2(config-if)# ip address 10.1.2.1 255.255.255.0 
+R2(config-if)# ipv6 address FEC0::2:1/112
+
+Router(config)# hostname R3
+R3(config)# interface loopback0
+R3(config-if)# ip address 10.1.3.1 255.255.255.0
+R3(config-if)# ipv6 address FEC0::3:1/112
+
+Step 3: Configure static IPv6 addresses.
+
+R1(config)# interface serial0/0/0
+R1(config-if)# ipv6 address FEC0::12:1/112
+R1(config-if)# clockrate 64000 
+R1(config-if)# bandwidth 64 
+R1(config-if)# no shutdown
+R1(config-if)# interface serial0/0/1
+R1(config-if)# ipv6 address FEC0::13:1/112
+R1(config-if)# bandwidth 64 
+R1(config-if)# no shutdown
+
+R2(config)# interface serial0/0/0
+R2(config-if)# ipv6 address FEC0::12:2/112
+R2(config-if)# bandwidth 64 
+R2(config-if)# no shutdown
+
+R3(config)# interface serial0/0/0
+R3(config-if)# ipv6 address FEC0::13:3/112
+R3(config-if)# clockrate 64000 
+R3(config-if)# bandwidth 64 
+R3(config-if)# no shutdown
+
+R1# ping FEC0::12:2
+R1# ping FEC0::13:3
+
+R2# ping FEC0::12:1
+
+R3# ping FEC0::13:1
+
+Step 4: Change the link-local address on an interface.
+
+R1# show ipv6 interface serial 0/0/0
+
+R2# show ipv6 interface serial 0/0/0
+
+R1(config)# interface serial0/0/0
+R1(config-if)# ipv6 address FE80::1 link-local
+
+R2(config)# interface serial0/0/0
+R2(config-if)# ipv6 address FE80::2 link-local
+
+R1# ping FE80::2
+R2# ping FE80::1
+
+R1# show ipv6 interface serial 0/0/0
+
+R2# show ipv6 interface serial 0/0/0
+
+Step 5: Configure EUI-64 addresses.
+
+R2(config)# interface fastEthernet 0/0
+R2(config-if)# ipv6 address FEC0:23::/64 eui-64 
+R2(config-if)# no shutdown
+
+R3(config)# interface fastEthernet 0/0
+R3(config-if)# ipv6 address FEC0:23::/64 eui-64 
+R3(config-if)# no shutdown
+
+R2# show ipv6 interface fastEthernet 0/0
+R2# show ipv6 interface brief
+R2# ping FEC0:23::218:B9FF:FECD:BEF0
+
+R3# ping FEC0:23::218:B9FF:FE92:28D8
+
+Step 6: Enable IPv6 routing and CEF.
+
+R1(config)# ipv6 unicast-routing
+R1(config)# ipv6 cef
+
+R2(config)# ipv6 unicast-routing
+R2(config)# ipv6 cef
+
+R3(config)# ipv6 unicast-routing
+R3(config)# ipv6 cef
+
+7: Configure OSPFv3.
+
+R1(config)# interface loopback0
+R1(config-if)# ipv6 ospf 1 area 0
+R1(config-if)# interface serial0/0/0
+R1(config-if)# ipv6 ospf 1 area 0
+R1(config-if)# interface serial0/0/1
+R1(config-if)# ipv6 ospf 1 area 0
+
+R2(config)# interface loopback0
+R2(config-if)# ipv6 ospf 1 area 0
+R2(config-if)# interface serial0/0/0
+R2(config-if)# ipv6 ospf 1 area 0
+R2(config-if)# interface fastEthernet 0/0 
+R2(config-if)# ipv6 ospf 1 area 0
+
+R3(config)# interface loopback0
+R3(config-if)# ipv6 ospf 1 area 0
+R3(config-if)# interface serial0/0/0
+R3(config-if)# ipv6 ospf 1 area 0
+R3(config-if)# interface fastEthernet 0/0 
+R3(config-if)# ipv6 ospf 1 area 0
+
+R1# show ipv6 ospf neighbor
+R2# show ipv6 ospf neighbor
+R3# show ipv6 ospf neighbor
+
+R1# show ipv6 route
+R2# show ipv6 route
+R3# show ipv6 route

@@ -1,0 +1,90 @@
+P 7 Configuring EtherChannel
+
+Background
+Four switches have just been installed. The distribution layer switches are Catalyst 3560 switches, and the
+access layer switches are Catalyst 2960 switches. There are redundant uplinks between the access layer and
+distribution layer. Usually, only one of these links could be used; otherwise, a bridging loop might occur.
+However, using only one link utilizes only half of the available bandwidth. EtherChannel allows up to eight
+redundant links to be bundled together into one logical link.
+
+Required Resources
+• 2 switches (Cisco 2960 with the Cisco IOS Release 12.2(46)SE C2960-LANBASEK9-M image or
+comparable)
+• 2 switches (Cisco 3560 with the Cisco IOS Release 12.2(46)SE C3560- ADVIPSERVICESK9-M
+image or comparable)
+• Ethernet and console cables
+
+Step 1: Prepare the switches for the lab and Configure basic switch parameters.
+
+DLS1# configure terminal
+Enter configuration commands, one per line. End with CNTL/Z.
+DLS1(config)# interface range fastEthernet 0/7 - 12
+DLS1(config-if-range)# switchport trunk encapsulation dot1q
+DLS1(config-if-range)# switchport mode trunk
+
+Step 3: Configure an EtherChannel with Cisco PAgP.
+
+ALS1# show interfaces trunk
+ALS1(config)# interface range fastEthernet 0/11 - 12
+ALS1(config-if-range)# channel-group 1 mode desirable
+Creating a port-channel interface Port-channel 1
+ALS1(config)# interface port-channel 1
+ALS1(config-if)# switchport mode trunk
+ALS1# show etherchannel summary
+
+ALS2(config)# interface range fastEthernet 0/11 - 12
+ALS2(config-if-range)# channel-group 1 mode desirable
+Creating a port-channel interface Port-channel 1
+ALS2(config)# interface port-channel 1
+ALS2(config-if)# switchport mode trunk
+ALS2# show etherchannel summary
+
+ALS1# show interfaces trunk
+ALS1# show spanning-tree
+
+Step 4: Configure an 802.3ad LACP EtherChannel.
+
+ALS1(config)# interface range fastEthernet 0/7 - 8
+ALS1(config-if-range)# channel-group 2 mode active
+Creating a port-channel interface Port-channel 2
+ALS1(config-if-range)# interface port-channel 2
+ALS1(config-if)# switchport mode trunk
+ALS1# show etherchannel summary
+
+Step 5: Configure a Layer 3 EtherChannel.
+
+DLS1(config)# interface range fastEthernet 0/11 - 12
+DLS1(config-if-range)# no switchport
+DLS1(config-if-range)# channel-group 3 mode desirable
+Creating a port-channel interface Port-channel 3 
+DLS1(config-if-range)# interface port-channel 3
+DLS1(config-if)# no switchport
+DLS1(config-if)# ip address 10.0.0.1 255.255.255.0
+
+DLS2(config)# interface range fastEthernet 0/11 - 12
+DLS2(config-if-range)# no switchport
+DLS2(config-if-range)# channel-group 3 mode desirable
+Creating a port-channel interface Port-channel 3 
+DLS2(config-if-range)# interface port-channel 3
+DLS2(config-if)# no switchport
+DLS2(config-if)# ip address 10.0.0.2 255.255.255.0
+
+DLS1# ping 10.0.0.2
+DLS1# show etherchannel summary
+
+Step 6: Configure load balancing.
+
+DLS1# show etherchannel load-balance
+EtherChannel Load-Balancing Operational State (src-mac):
+Non-IP: Source MAC address
+IPv4: Source MAC address
+IPv6: Source IP address
+
+ALS1(config)# port-channel load-balance src-dst-mac
+ALS1# show etherchannel load-balance
+EtherChannel Load-Balancing Operational State (src-dst-mac):
+Non-IP: Source XOR Destination MAC address
+IPv4: Source XOR Destination MAC address
+IPv6: Source XOR Destination IP address
+
+
